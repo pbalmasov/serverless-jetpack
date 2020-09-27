@@ -1,6 +1,10 @@
 Changes
 =======
 
+## 0.10.7-accu.0
+
+* Added support for Lerna monorepos
+
 ## 0.10.7
 
 * Internal: Refactor inefficient JavaScript object usage in `reduce()`.
