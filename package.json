@@ -1,6 +1,6 @@
 {
   "name": "@philippmalkov/serverless-jetpack",
-  "version": "0.10.7",
+  "version": "0.10.7-accu.0",
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
   "repository": "https://github.com/philippmalkov/serverless-jetpack",
