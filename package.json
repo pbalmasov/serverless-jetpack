@@ -1,9 +1,9 @@
 {
-  "name": "serverless-jetpack",
+  "name": "@philippmalkov/serverless-jetpack",
   "version": "0.10.7",
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
-  "repository": "https://github.com/FormidableLabs/serverless-jetpack",
+  "repository": "https://github.com/philippmalkov/serverless-jetpack",
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
   "keywords": [
