@@ -1,10 +1,12 @@
 {
   "name": "@philippmalkov/serverless-jetpack",
-  "version": "0.10.7-accu.0",
+  "version": "0.10.7-accu.1",
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
   "repository": "https://github.com/philippmalkov/serverless-jetpack",
-  "publishConfig": { "registry": "https://npm.pkg.github.com/" },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
   "keywords": [
