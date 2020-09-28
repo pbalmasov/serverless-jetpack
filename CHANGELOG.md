@@ -1,6 +1,10 @@
 Changes
 =======
 
+## 0.10.7-accu.1
+
+* Fixed symlinks relative paths
+
 ## 0.10.7-accu.0
 
 * Added support for Lerna monorepos
