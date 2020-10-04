@@ -1,6 +1,11 @@
 Changes
 =======
 
+## 0.10.7-accu.2
+
+* Added support for scoped packages
+* Slightly improved performance
+
 ## 0.10.7-accu.1
 
 * Fixed symlinks relative paths
