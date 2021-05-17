@@ -1,8 +1,7 @@
 Serverless Jetpack 🚀
 ====================
 [![npm version][npm_img]][npm_site]
-[![CircleCI status][circle_img]][circle_site]
-[![AppVeyor status][appveyor_img]][appveyor_site]
+[![Actions Status][actions_img]][actions_site]
 [![MIT license][lic_img]][lic_site]
 [![Maintenance Status][maintenance-image]](#maintenance-status)
 
@@ -472,7 +471,7 @@ The basic `trace` Boolean field should hopefully work for most cases. Jetpack pr
 
 * `trace` (`Boolean | Object`): If `trace: true` or `trace: { /* other options */ }` then tracing mode is activated at the service level.
 * `trace.ignores` (`Array<string>`): A set of package path prefixes up to a directory level (e.g., `react` or `mod/lib`) to skip tracing on. This is particularly useful when you are excluding a package like `aws-sdk` that is already provided for your lambda.
-* `trace.allowMissing` (`Object.<string, Array<string>>`): A way to allow certain packages to have potentially failing dependencies. Specify each object key as a package name and value as an array of dependencies that _might_ be missing on disk. If the sub-dependency is found, then it is included in the bundle (this part distinguishes this option from `ignores`). If not, it is skipped without error.
+* `trace.allowMissing` (`Object.<string, Array<string>>`): A way to allow certain packages to have potentially failing dependencies. Specify each object key as either (1) an source file path relative to `servicePath` / CWD that begins with a `./` or (2) a package name and provide a value as an array of dependencies that _might_ be missing on disk. If the sub-dependency is found, then it is included in the bundle (this part distinguishes this option from `ignores`). If not, it is skipped without error.
 * `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging.
     * **Note**: These patterns are in _addition_ to the handler inferred file path. If you want to exclude the handler path you could technically do a `!file/path.js` exclusion, but that would be a strange case in that your handler files would no longer be present.
 * `trace.dynamic.bail` (`Boolean`): Terminate `serverless` program with an error if dynamic import misses are detected. See [discussion below](#handling-dynamic-import-misses) regarding handling.
@@ -602,7 +601,6 @@ functions:
 ### Tracing caveats
 
 * **Works best for large, unused production dependencies**: Tracing mode is best suited for an application wherein many / most of the files specified in `package.json:dependencies` are not actually used. When there is a large discrepancy between "specific dependencies" and "actually used files" you'll see the biggest speedups. Conversely, when production dependencies are very tight and almost every file is used you won't see a large speedup versus Jetpack's normal dependency mode.
-    * An example of an application with lots of unused production dependencies is our `huge-prod` test fixture. Trace mode is significantly faster than Jetpack dependency mode and baseline serverless packaging.
 
 * **Only works with JavaScript handlers + code**: Tracing mode only works with `functions.{FN_NAME}.handler` and `trace.include` files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
 
@@ -714,7 +712,7 @@ Once we have analyzed all of our misses and added `resolutions` to either ignore
 
 ### Tracing results
 
-The following is a table of generated packages using vanilla Serverless vs Jetpack with tracing (using `yarn benchmark:sizes`). Even for our smallest `simple` scenario, the result is smaller total bundle size. For scenarios like the contrived `huge-prod` (with many unused production dependencies) the size difference is a significant 90+% decrease in size from `6.5 MB` to `0.5 MB`.
+The following is a table of generated packages using vanilla Serverless vs Jetpack with tracing (using `yarn benchmark:sizes`).
 
 The relevant portions of our measurement chart.
 
@@ -727,22 +725,12 @@ The relevant portions of our measurement chart.
 
 Results:
 
-| Scenario     | Type     | Zips | Files |    Size |      vs Base |
-| :----------- | :------- | ---: | ----: | ------: | -----------: |
-| simple       | jetpack  |    1 |   179 |  496863 | **-41.18 %** |
-| simple       | baseline |    1 |   369 |  844693 |              |
-| complex      | jetpack  |    6 |  2145 | 5358022 | **-11.16 %** |
-| complex      | baseline |    6 |  2525 | 6030822 |              |
-| individually | jetpack  |    3 |   365 |  999269 | **-32.49 %** |
-| individually | baseline |    3 |   618 | 1480191 |              |
-| monorepo     | jetpack  |    2 |   360 |  834652 | **-39.16 %** |
-| monorepo     | baseline |    2 |   531 | 1371924 |              |
-| webpack      | jetpack  |    1 |     3 |    1804 | **-20.21 %** |
-| webpack      | baseline |    1 |     1 |    2261 |              |
-| huge         | jetpack  |    1 |   179 |  613943 | **-72.52 %** |
-| huge         | baseline |    1 |   505 | 2234279 |              |
-| huge-prod    | jetpack  |    1 |   179 |  512997 | **-92.27 %** |
-| huge-prod    | baseline |    1 |  4044 | 6633028 |              |
+| Scenario | Type     | Zips | Files |    Size |      vs Base |
+| :------- | :------- | ---: | ----: | ------: | -----------: |
+| simple   | jetpack  |    1 |   200 |  529417 | **-42.78 %** |
+| simple   | baseline |    1 |   433 |  925260 |              |
+| complex  | jetpack  |    2 |  1588 | 3835544 | **-18.20 %** |
+| complex  | baseline |    2 |  2120 | 4688648 |              |
 
 ## Command Line Interface
 
@@ -785,8 +773,7 @@ As a quick guide to the results table:
 
 - `Scenario`: Contrived scenarios for the purpose of generating results. E.g.,
     - `simple`: Very small production and development dependencies.
-    - `individually`: Same dependencies as `simple`, but with `individually` packaging.
-    - `huge`: Lots and lots of development dependencies.
+    - `complex`: Many different serverless configurations all in one.
 - `Pkg`: Project installed via `yarn` or `npm`? This really only matters in that `npm` and `yarn` may flatten dependencies differently, so we want to make sure Jetpack is correct in both cases.
 - `Type`: `jetpack` is this plugin and `baseline` is Serverless built-in packaging.
 - `Mode`: For `jetpack` benchmarks, either:
@@ -804,53 +791,20 @@ Machine information:
 
 Results:
 
-### Benchmark: Timed Packages
-| Scenario     | Pkg  | Type     | Mode  |  Time |      vs Base |
-| :----------- | :--- | :------- | :---- | ----: | -----------: |
-| simple       | yarn | jetpack  | trace |  2632 | **-68.52 %** |
-| simple       | yarn | jetpack  | deps  |  2430 | **-70.93 %** |
-| simple       | yarn | baseline |       |  8360 |              |
-| simple       | npm  | jetpack  | trace |  2900 | **-67.94 %** |
-| simple       | npm  | jetpack  | deps  |  2600 | **-71.26 %** |
-| simple       | npm  | baseline |       |  9046 |              |
-| complex      | yarn | jetpack  | trace |  3413 | **-74.15 %** |
-| complex      | yarn | jetpack  | deps  |  3219 | **-75.62 %** |
-| complex      | yarn | baseline |       | 13202 |              |
-| complex      | npm  | jetpack  | trace |  3963 | **-72.89 %** |
-| complex      | npm  | jetpack  | deps  |  3345 | **-77.12 %** |
-| complex      | npm  | baseline |       | 14617 |              |
-| individually | yarn | jetpack  | trace |  6679 | **-35.39 %** |
-| individually | yarn | jetpack  | deps  |  6189 | **-40.13 %** |
-| individually | yarn | baseline |       | 10337 |              |
-| individually | npm  | jetpack  | trace |  7552 | **-31.06 %** |
-| individually | npm  | jetpack  | deps  |  6584 | **-39.89 %** |
-| individually | npm  | baseline |       | 10954 |              |
-| huge         | yarn | jetpack  | trace |  2480 | **-87.02 %** |
-| huge         | yarn | jetpack  | deps  |  2531 | **-86.75 %** |
-| huge         | yarn | baseline |       | 19107 |              |
-| huge         | npm  | jetpack  | trace |  2894 | **-86.52 %** |
-| huge         | npm  | jetpack  | deps  |  2611 | **-87.84 %** |
-| huge         | npm  | baseline |       | 21469 |              |
-| huge-prod    | yarn | jetpack  | trace |  2539 | **-76.59 %** |
-| huge-prod    | yarn | jetpack  | deps  |  4420 | **-59.24 %** |
-| huge-prod    | yarn | baseline |       | 10844 |              |
-| huge-prod    | npm  | jetpack  | trace |  2779 | **-75.05 %** |
-| huge-prod    | npm  | jetpack  | deps  |  4350 | **-60.95 %** |
-| huge-prod    | npm  | baseline |       | 11139 |              |
-
-### Benchmark: Other Packages
-| Scenario | Pkg  | Type     | Mode  | Time |     vs Base |
-| :------- | :--- | :------- | :---- | ---: | ----------: |
-| monorepo | yarn | jetpack  | trace | 3078 |             |
-| monorepo | yarn | jetpack  | deps  | 2565 |             |
-| monorepo | npm  | jetpack  | trace | 3445 |             |
-| monorepo | npm  | jetpack  | deps  | 2548 |             |
-| webpack  | yarn | jetpack  | trace | 2721 |  **1.04 %** |
-| webpack  | yarn | jetpack  | deps  | 2511 | **-6.76 %** |
-| webpack  | yarn | baseline |       | 2693 |             |
-| webpack  | npm  | jetpack  | trace | 3158 | **13.60 %** |
-| webpack  | npm  | jetpack  | deps  | 2575 | **-7.37 %** |
-| webpack  | npm  | baseline |       | 2780 |             |
+| Scenario | Pkg  | Type     | Mode  |  Time |      vs Base |
+| :------- | :--- | :------- | :---- | ----: | -----------: |
+| simple   | yarn | jetpack  | trace |  4878 | **-74.25 %** |
+| simple   | yarn | jetpack  | deps  |  3861 | **-79.62 %** |
+| simple   | yarn | baseline |       | 18941 |              |
+| simple   | npm  | jetpack  | trace |  7290 | **-68.34 %** |
+| simple   | npm  | jetpack  | deps  |  4017 | **-82.55 %** |
+| simple   | npm  | baseline |       | 23023 |              |
+| complex  | yarn | jetpack  | trace | 10475 | **-70.93 %** |
+| complex  | yarn | jetpack  | deps  |  8821 | **-75.52 %** |
+| complex  | yarn | baseline |       | 36032 |              |
+| complex  | npm  | jetpack  | trace | 15644 | **-59.13 %** |
+| complex  | npm  | jetpack  | deps  |  9896 | **-74.15 %** |
+| complex  | npm  | baseline |       | 38282 |              |
 
 ## Maintenance status
 
@@ -866,10 +820,8 @@ Results:
 
 [npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
-[circle_img]: https://circleci.com/gh/FormidableLabs/serverless-jetpack.svg?style=shield
-[circle_site]: https://circleci.com/gh/FormidableLabs/serverless-jetpack
-[appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
-[appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack
+[actions_img]: https://github.com/FormidableLabs/trace-deps/workflows/CI/badge.svg
+[actions_site]: https://github.com/FormidableLabs/trace-deps/actions
 [lic_img]: https://img.shields.io/npm/l/serverless-jetpack.svg?color=brightgreen&style=flat
 [lic_site]: https://github.com/FormidableLabs/serverless-jetpack/blob/master/LICENSE.txt
 [maintenance-image]: https://img.shields.io/badge/maintenance-active-brightgreen.svg

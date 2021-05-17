@@ -28,10 +28,10 @@ const numCpus = os.cpus().length;
  * Drive all the various scenarios. To limit packagers or scenario, try:
  *
  * ```sh
- * $ TEST_PKG=yarn TEST_SCENARIO=simple      node test/script.js install
- * $ TEST_PKG=yarn TEST_SCENARIO=simple,huge node test/script.js build
- * $ TEST_PKG=yarn,npm TEST_SCENARIO=simple  node test/script.js benchmark
- * $ TEST_MODE=trace TEST_SCENARIO=simple    node test/script.js benchmark
+ * $ TEST_PKG=yarn TEST_SCENARIO=simple         node test/script.js install
+ * $ TEST_PKG=yarn TEST_SCENARIO=simple,complex node test/script.js build
+ * $ TEST_PKG=yarn,npm TEST_SCENARIO=simple     node test/script.js benchmark
+ * $ TEST_MODE=trace TEST_SCENARIO=simple       node test/script.js benchmark
  * ```
  */
 const PKGS = [
@@ -48,41 +48,27 @@ const MODES = [
 
 const SCENARIOS = [
   "simple",
-  "dashboard",
-  "complex",
-  "individually",
-  "monorepo",
-  "webpack",
-  "huge",
-  "huge-prod"
+  "complex"
 ]
   .filter((s) => !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(s));
 
 // Only some scenarios are part of our timing benchmark.
 const TIMING_SCENARIOS = new Set([
   "simple",
-  "complex",
-  "individually",
-  "huge",
-  "huge-prod"
+  "complex"
 ]);
 
 // Some scenarios are only feasible in Jetpack
 const JETPACK_ONLY_SCENARIOS = new Set([
-  "monorepo"
 ]);
 
 // Tests to exclude from correctness tests.
 const SKIP_CORRECTNESS_SCENARIOS = new Set([
-  "monorepo",
-  "webpack",
-  "huge-prod"
 ]);
 
 // Some scenarios allow failures in executing `serverless`
 // (Due to AWS creds we're not going to provide).
 const ALLOW_FAILURE_SCENARIOS = new Set([
-  "dashboard"
 ]);
 
 // All scenario to run.
@@ -129,8 +115,9 @@ const build = async () => {
     "*.py",
     "functions/*/src/**",
     "functions/*/package.json",
-    "layers/*/*.js",
-    "layers/*/nodejs/package.json",
+    // TODO(LAYERS): reenable this?
+    // "layers/*/*.js",
+    // "layers/*/nodejs/package.json",
     "lib/*/src/**",
     "lib/*/package.json"
   ];
@@ -160,7 +147,7 @@ const build = async () => {
   }
 };
 
-const install = async ({ skipIfExists }) => {
+const createInstall = ({ installCmd }) => async ({ skipIfExists }) => {
   for (const { scenario, pkg } of MATRIX) {
     const cwd = path.resolve(`test/packages/${scenario}/${pkg}`);
     const execOpts = {
@@ -174,7 +161,7 @@ const install = async ({ skipIfExists }) => {
     }
 
     log(chalk `{cyan ${scenario}/${pkg}}: Installing`);
-    await execMode(pkg, ["install", "--no-progress"], execOpts);
+    await installCmd({ pkg, execOpts });
 
     // Symlinks don't exist on Windows, so only on UNIX-ish.
     if (!IS_WIN) {
@@ -185,6 +172,26 @@ const install = async ({ skipIfExists }) => {
     }
   }
 };
+
+const install = createInstall({
+  installCmd: async ({ pkg, execOpts }) => {
+    await execMode(pkg, ["install", "--no-progress"], execOpts);
+  }
+});
+
+const ci = createInstall({
+  installCmd: async ({ pkg, execOpts }) => {
+    if (pkg === "yarn") {
+      await execMode(
+        pkg,
+        ["install", "--prefer-offline", "--frozen-lockfile", "--non-interactive", "--no-progress"],
+        execOpts
+      );
+    } else if (pkg === "npm") {
+      await execMode(pkg, ["ci", "--no-progress"], execOpts);
+    }
+  }
+});
 
 const _logTask = (obj) => (msg) => log(chalk `{green ${msg}}: ${JSON.stringify(obj)}`);
 
@@ -416,6 +423,7 @@ const main = async () => {
   const actionStr = process.argv[2]; // eslint-disable-line no-magic-numbers
   const actions = {
     build,
+    ci,
     install,
     benchmark,
     size

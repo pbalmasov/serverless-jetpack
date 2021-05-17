@@ -17,6 +17,10 @@ Our development revolves around various fixture packages we have in `test`. Get 
 
 ```sh
 $ yarn
+
+# If not changing deps
+$ yarn benchmark:ci
+# If changing deps
 $ yarn benchmark:install
 ```
 
@@ -30,32 +34,14 @@ test/packages/
 ├── complex
 │   ├── npm
 │   └── yarn
-├── dashboard
-│   ├── npm
-│   └── yarn
-├── huge
-│   ├── npm
-│   └── yarn
-├── huge-prod
-│   ├── npm
-│   └── yarn
-├── individually
-│   ├── npm
-│   └── yarn
-├── monorepo
-│   ├── npm
-│   └── yarn
-├── simple
-│   ├── npm
-│   └── yarn
-└── webpack
+└── simple
     ├── npm
     └── yarn
 ```
 
 **Note**: Only **some** of the scenarios contribute to the timed benchmark results as some scenarios don't actually use either built-in Serverless or Jetpack packaging.
 
-For ease of development, we want to do `yarn benchmark:install` and install the respective yarn/npm packages **once**. However, this means we keep duplicates of source code / package.json files across the `npm`/`yarn` variant directories. To keep things in sync, we designate the `yarn` directory as "the source of truth" for everything except for `SCENARIO/npm/package-lock.json` and copy files across scenarios with:
+For ease of development, we want to do `yarn benchmark:ci`/`yarn benchmark:install` and install the respective yarn/npm packages **once**. However, this means we keep duplicates of source code / package.json files across the `npm`/`yarn` variant directories. To keep things in sync, we designate the `yarn` directory as "the source of truth" for everything except for `SCENARIO/npm/package-lock.json` and copy files across scenarios with:
 
 ```sh
 $ yarn benchmark:build
@@ -65,7 +51,7 @@ From there you can run various packaging configurations and perform benchmarks.
 
 ```sh
 $ TEST_PKG=yarn TEST_SCENARIO=simple yarn benchmark
-$ TEST_PKG=yarn TEST_SCENARIO=simple,huge yarn benchmark
+$ TEST_PKG=yarn TEST_SCENARIO=simple,complex yarn benchmark
 $ TEST_PKG=yarn,npm TEST_SCENARIO=simple yarn benchmark
 
 # Faster, because scenarios run in parallel, but less reliable results because
@@ -107,7 +93,7 @@ Run these before a PR and when changing things / kicking tires...
 
 ```sh
 # Install once (or on changes to dependencies or fixtures)
-$ yarn benchmark:install
+$ yarn benchmark:ci # or yarn benchmark:install if changing deps
 $ yarn benchmark:build
 ```
 
@@ -144,6 +130,7 @@ $ yarn run check
 
 # Make sure all fixtures are updated and valid
 $ yarn benchmark:install
+$ yarn benchmark:ci
 $ yarn benchmark:build
 
 # After this, you can run the CLI tests which use real fixtures in E2E scenarios

@@ -1,6 +1,20 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Deps: Update various production and development dependencies.
+  [#254](https://github.com/FormidableLabs/serverless-jetpack/pull/254)
+
+## 0.10.9
+
+* Bug: Handle special characters in filenames like `[...id].js` during tracing.
+* Deps: Upgrade `globby` to `v11`.
+
+## 0.10.8
+
+* Feature: Support application source paths as keys in `jetpack.trace.allowMissing`.
+
 ## 0.10.7-accu.2
 
 * Added support for scoped packages
