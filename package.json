@@ -1,6 +1,6 @@
 {
-  "name": "@philippmalkov/serverless-jetpack",
-  "version": "0.10.7-accu.2",
+  "name": "@pbalmasov/serverless-jetpack",
+  "version": "0.10.7-accu.3",
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
   "repository": "https://github.com/philippmalkov/serverless-jetpack",
@@ -71,7 +71,7 @@
     "mocha": "^7.1.1",
     "mock-fs": "^4.11.0",
     "p-queue": "^6.3.0",
-    "serverless": "^1.67.2",
+    "serverless": "^2.41.2",
     "sinon": "^9.0.1",
     "sinon-chai": "^3.5.0",
     "strip-ansi": "^6.0.0"
